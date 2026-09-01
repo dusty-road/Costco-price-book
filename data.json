@@ -1,0 +1,17 @@
+{
+  "last_updated": "2026-09-01",
+  "products": [
+    {
+      "item_number": "",
+      "name": "Example Product",
+      "brand": "Example Brand",
+      "category": "Example",
+      "pack": "12 pack",
+      "price": 39.99,
+      "unit_price": "$3.33 each",
+      "date_checked": "2026-09-01",
+      "warehouse": "",
+      "notes": "Placeholder only \u2014 replace with your first photographed Costco item."
+    }
+  ]
+}

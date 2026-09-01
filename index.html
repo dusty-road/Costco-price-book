@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f5aa6" />
+  <title>Costco Price Book</title>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --text:#17202a; --muted:#6b7280;
+      --blue:#0f5aa6; --red:#d71920; --line:#e5e7eb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:920px;margin:auto;padding:18px}
+    header{background:linear-gradient(135deg,var(--blue),#183b70);color:white;padding:22px;border-radius:20px;margin-bottom:14px}
+    h1{margin:0 0 6px;font-size:28px}
+    .sub{opacity:.9;font-size:14px}
+    .controls{display:grid;grid-template-columns:1fr 160px;gap:10px;margin:14px 0}
+    input,select{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:white;font-size:16px}
+    .stats{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px}
+    .pill{background:white;border:1px solid var(--line);padding:8px 12px;border-radius:999px;font-size:13px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+    .top{display:flex;justify-content:space-between;gap:10px}
+    .name{font-weight:750;font-size:17px;line-height:1.2}
+    .brand{font-size:13px;color:var(--muted);margin-top:3px}
+    .price{font-size:25px;font-weight:800;color:var(--red);white-space:nowrap}
+    .meta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:14px;font-size:13px}
+    .meta div{background:#f8fafc;border-radius:10px;padding:8px}
+    .label{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}
+    .empty{text-align:center;color:var(--muted);padding:40px 10px}
+    footer{text-align:center;color:var(--muted);font-size:12px;padding:24px 0}
+    @media (max-width:560px){
+      .controls{grid-template-columns:1fr}
+      .wrap{padding:12px}
+      header{border-radius:16px;padding:18px}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Costco Price Book</h1>
+    <div class="sub">A searchable record of Costco products, pack sizes and unit prices.</div>
+  </header>
+
+  <div class="controls">
+    <input id="search" type="search" placeholder="Search products, brands or categories…" />
+    <select id="category"><option value="">All categories</option></select>
+  </div>
+
+  <div class="stats">
+    <div class="pill" id="count">0 products</div>
+    <div class="pill" id="updated">Last updated: —</div>
+  </div>
+
+  <main id="grid" class="grid"></main>
+  <footer>Costco Price Book</footer>
+</div>
+
+<script>
+let products = [];
+
+function money(v){
+  return typeof v === "number" ? new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(v) : v || "—";
+}
+
+function render(){
+  const q = document.getElementById("search").value.toLowerCase().trim();
+  const cat = document.getElementById("category").value;
+  const filtered = products.filter(p => {
+    const hay = [p.name,p.brand,p.category,p.pack,p.notes].join(" ").toLowerCase();
+    return (!q || hay.includes(q)) && (!cat || p.category === cat);
+  });
+
+  document.getElementById("count").textContent = `${filtered.length} product${filtered.length===1?"":"s"}`;
+  const grid = document.getElementById("grid");
+
+  if(!filtered.length){
+    grid.innerHTML = '<div class="empty">No matching products yet.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p => `
+    <article class="card">
+      <div class="top">
+        <div>
+          <div class="name">${p.name || "Unnamed item"}</div>
+          <div class="brand">${p.brand || ""}</div>
+        </div>
+        <div class="price">${money(p.price)}</div>
+      </div>
+      <div class="meta">
+        <div><span class="label">Pack / size</span>${p.pack || "—"}</div>
+        <div><span class="label">Unit price</span>${p.unit_price || "—"}</div>
+        <div><span class="label">Category</span>${p.category || "—"}</div>
+        <div><span class="label">Date checked</span>${p.date_checked || "—"}</div>
+        <div><span class="label">Warehouse</span>${p.warehouse || "—"}</div>
+        <div><span class="label">Item #</span>${p.item_number || "—"}</div>
+      </div>
+      ${p.notes ? `<div style="margin-top:10px;font-size:13px;color:#6b7280">${p.notes}</div>` : ""}
+    </article>
+  `).join("");
+}
+
+fetch("data.json?ts="+Date.now())
+  .then(r => r.json())
+  .then(data => {
+    products = data.products || [];
+    const cats = [...new Set(products.map(p=>p.category).filter(Boolean))].sort();
+    const select = document.getElementById("category");
+    cats.forEach(c => select.insertAdjacentHTML("beforeend", `<option>${c}</option>`));
+    document.getElementById("updated").textContent = "Last updated: " + (data.last_updated || "—");
+    render();
+  })
+  .catch(() => {
+    document.getElementById("grid").innerHTML =
+      '<div class="empty">Could not load data.json. Make sure it is in the same folder as this page.</div>';
+  });
+
+document.getElementById("search").addEventListener("input", render);
+document.getElementById("category").addEventListener("change", render);
+</script>
+</body>
+</html>
